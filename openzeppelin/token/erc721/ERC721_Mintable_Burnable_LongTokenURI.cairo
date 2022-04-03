@@ -3,7 +3,7 @@
 
 %lang starknet
 
-from starkware.cairo.common.cairo_builtins import HashBuiltin, SignatureBuiltin
+from starkware.cairo.common.cairo_builtins import BitwiseBuiltin, HashBuiltin, SignatureBuiltin
 from starkware.cairo.common.uint256 import Uint256
 
 from openzeppelin.token.erc721.library import (
@@ -23,11 +23,10 @@ from openzeppelin.token.erc721.library import (
     ERC721_burn,
     ERC721_only_token_owner,
 )
-from openzeppelin.token.erc721.tokenURI_library import (
-    ERC721_tokenURI,
-    ERC721_setBaseTokenURI
+from openzeppelin.utils.String import (
+    String_set,
+    String_get,
 )
-
 
 from openzeppelin.introspection.ERC165 import ERC165_supports_interface
 
@@ -48,13 +47,10 @@ func constructor{
     }(
         name: felt,
         symbol: felt,
-        owner: felt,
-        tokenURI_len: felt,
-        tokenURI: felt*
+        owner: felt
     ):
     ERC721_initializer(name, symbol)
     Ownable_initializer(owner)
-    ERC721_setBaseTokenURI(tokenURI_len, tokenURI)
     return ()
 end
 
@@ -135,11 +131,12 @@ end
 @view
 func tokenURI{
         syscall_ptr: felt*,
+        bitwise_ptr : BitwiseBuiltin*,
         pedersen_ptr: HashBuiltin*,
         range_check_ptr
     }(tokenId: Uint256) -> (tokenURI_len: felt, tokenURI: felt*):
-    let (tokenURI_len: felt, tokenURI: felt*) = ERC721_tokenURI(tokenId)
-    return (tokenURI_len=tokenURI_len, tokenURI=tokenURI)
+    let (str_len: felt, str: felt*) = String_get(tokenId)
+    return (tokenURI_len=str_len, tokenURI=str)
 end
 
 
@@ -200,22 +197,25 @@ end
 @external
 func setTokenURI{
         pedersen_ptr: HashBuiltin*,
+        bitwise_ptr : BitwiseBuiltin*,
         syscall_ptr: felt*,
         range_check_ptr
-    }(tokenURI_len: felt, tokenURI: felt*):
+    }(tokenId: Uint256, tokenURI_len: felt, tokenURI: felt*):
     Ownable_only_owner()
-    ERC721_setBaseTokenURI(tokenURI_len, tokenURI)
+    String_set(tokenId, tokenURI_len, tokenURI)
     return ()
 end
 
 @external
 func mint{
         pedersen_ptr: HashBuiltin*,
+        bitwise_ptr : BitwiseBuiltin*,
         syscall_ptr: felt*,
         range_check_ptr
-    }(to: felt, tokenId: Uint256):
+    }(to: felt, tokenId: Uint256, tokenURI_len: felt, tokenURI: felt*):
     Ownable_only_owner()
     ERC721_mint(to, tokenId)
+    String_set(tokenId, tokenURI_len, tokenURI)
     return ()
 end
 
